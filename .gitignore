@@ -65,3 +65,4 @@ logs/
 # IDE configuration
 .env
 .env.local
+.firecrawl/
