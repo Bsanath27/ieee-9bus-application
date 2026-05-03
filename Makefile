@@ -35,7 +35,7 @@ run-demo:
 	@echo "Starting ChronoGrid FusionNet Demo..."
 	@echo "Open: http://localhost:8765"
 	@echo "Press Ctrl+C to stop"
-	python -m code.server
+	python code/server.py
 
 run-notebook:
 	@echo "Launching Jupyter Notebook..."
