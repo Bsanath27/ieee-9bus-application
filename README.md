@@ -15,173 +15,265 @@
 - **Statistical Significance**: p < 0.01 (paired t-test)
 - **Inference**: 2.1 ms/sample (suitable for 0–2 ms relay response)
 
+## 🚀 Quick Start — Interactive Demo
+
+The easiest way to try ChronoGrid FusionNet:
+
+```bash
+# One command to start the demo
+make run-demo
+
+# Then open: http://localhost:8765
+```
+
+**Features**:
+- ✓ Real-time fault classification with 11 classes
+- ✓ S-transform heatmap visualization
+- ✓ Confidence scores and inference latency
+- ✓ Noise robustness testing (σ = 0.0–0.2)
+- ✓ Interactive sample selection (1–3000 per class)
+
+See [`demo/README.md`](demo/README.md) for full documentation.
+
+---
+
 ## 📂 Project Structure
 
 ```
 ieee-9bus-application/
 ├── README.md                      # This file
 ├── LICENSE                        # MIT License
+├── Makefile                       # Command automation (make run-demo, make train, etc.)
 ├── requirements.txt               # Python dependencies
 ├── .gitignore                     # Git ignore rules
 │
-├── docs/                          # Documentation
-│   ├── README.md                  # Doc navigation guide
-│   ├── APPLICATION.md             # Full Master's application (4-5 pages)
+├── docs/                          # Application & documentation
+│   ├── README.md                  # Navigation guide
+│   ├── APPLICATION.md             # Full Master's application (4–5 pages)
 │   ├── PROJECT_SUMMARY.md         # 1-page project overview
 │   ├── RESEARCH_ABSTRACT.md       # 280-word research abstract
+│   ├── TECHNICAL_DOCUMENTATION.md # Complete technical guide
 │   ├── DATASET.md                 # Dataset documentation
-│   └── TECHNICAL_DOCUMENTATION.md # Complete technical guide
+│   └── DEMO.md                    # Demo troubleshooting & examples
 │
 ├── notebooks/                     # Jupyter notebooks
 │   ├── main.ipynb                 # Complete implementation (START HERE)
-│   └── additional.ipynb           # Additional experiments
+│   └── additional.ipynb           # Additional experiments & ablations
 │
-├── papers/                        # Research papers
+├── papers/                        # Research papers & PDFs
 │   ├── ChronoGrid_FusionNet_Full_Paper.docx
 │   └── Wisen-DLP-25-0065-*.pdf
 │
-└── code/                          # Implementation code
-    └── server.py                  # Demo application
+├── code/                          # Implementation code
+│   └── server.py                  # FastAPI backend server
+│
+├── demo/                          # Interactive web demo
+│   ├── README.md                  # Demo documentation
+│   ├── index.html                 # Web interface (HTML5 + JavaScript)
+│   └── styles.css                 # Demo styling
+│
+└── models/                        # Trained model checkpoints
+    ├── README.md                  # Model documentation
+    ├── download_models.py         # Automated model downloader
+    └── .gitignore                 # Exclude large .pt files
 ```
 
-## 🚀 Quick Start
+## 🎯 Use Cases
 
-### 1. Clone Repository
+### 1. **Try the Demo** (5 min)
 ```bash
-git clone https://github.com/Bsanath27/ieee-9bus-application.git
-cd ieee-9bus-application
+make run-demo
+# Open http://localhost:8765
 ```
 
-### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+### 2. **Review Project** (15 min)
+Read [`docs/APPLICATION.md`](docs/APPLICATION.md) for full context, or [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) for a quick 1-page overview.
 
-### 3. Run Notebook
+### 3. **Understand Implementation** (1 hour)
+Open `notebooks/main.ipynb` to see:
+- Dataset loading & preprocessing
+- Model architecture definitions
+- Training loops with 5-fold cross-validation
+- Ablation study (4 models)
+- 14 publication-quality visualizations
+- Statistical significance tests
+
+### 4. **Train from Scratch** (4 hours)
 ```bash
+# Requires WSCC 9-Bus dataset in wscc9FaultDataset/
+make train
+
+# Or manually:
 jupyter notebook notebooks/main.ipynb
 ```
 
-## 📖 Documentation
-
-- **Getting Started**: Read [`docs/README.md`](docs/README.md)
-- **Full Application**: See [`docs/APPLICATION.md`](docs/APPLICATION.md) (best for universities)
-- **Project Overview**: See [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md)
-- **Technical Details**: See [`docs/TECHNICAL_DOCUMENTATION.md`](docs/TECHNICAL_DOCUMENTATION.md)
-- **Dataset Info**: See [`docs/DATASET.md`](docs/DATASET.md)
+---
 
 ## 🏗️ Architecture
 
+### ChronoGrid FusionNet (Best Model)
+
 ```
-Input [227×227 S-transform spectrogram]
+Input [B, 227, 227] (S-transform spectrogram)
   ↓
-Multi-Scale 1D CNN (k=3, k=5)
+Multi-Scale 1D CNN (kernels k=3 and k=5)
+  └─ Output: [B, 256, 56] (256 feature channels)
   ↓
 Bidirectional LSTM (2 layers, 128 hidden)
+  └─ Output: [B, 56, 256] (bidirectional context)
   ↓
-Self-Attention (8 heads, 256 dim)
+Self-Attention (8 heads, scaled dot-product)
+  └─ Output: [B, 56, 256] (adaptive temporal weighting)
   ↓
-Classification Head (11 fault classes)
+Classification Head
+  ├─ Global Average Pool → [B, 256]
+  ├─ FC(256→128) + ReLU + Dropout(0.3)
+  └─ FC(128→11) + Softmax → [B, 11]
+  ↓
+Output: Fault class logits (11 classes)
 ```
+
+### Model Specifications
+
+| Component | Details |
+|-----------|---------|
+| Input Size | 227×227 pixels (fixed) |
+| Input Type | Grayscale S-transform spectrogram |
+| Num Classes | 11 (AG, BG, CG, AB, AC, BC, ABG, ACG, BCG, ABCG, NF) |
+| Total Parameters | 1.059M |
+| GPU Memory | ~50 MB |
+| Inference Latency | 2.1 ms (GPU) / 45 ms (CPU) |
+| Training Time | ~30 min/fold (GPU) |
+
+---
 
 ## 📊 Results
 
-| Model | Accuracy | F1-Score | Params |
-|-------|----------|----------|--------|
-| Baseline CNN | 95.90% | 95.40% | 53.2K |
-| CNN+BiLSTM | 97.10% | 97.00% | 805.4K |
-| **ChronoGrid FusionNet** | **98.50%** | **98.40%** | **1.059M** |
+### Classification Accuracy (5-Fold CV)
 
-**Critical Class Performance** (Double-Line Faults):
-- Baseline CNN: 91.4% F1 (14% miss rate)
-- ChronoGrid FusionNet: 97.2% F1 (4% miss rate)
+| Model | Accuracy | F1-Score | Parameters |
+|-------|----------|----------|------------|
+| BiLSTM-Only | 94.20% ± 1.80% | 93.80% ± 2.00% | — |
+| **Baseline CNN** | **95.90% ± 1.20%** | **95.40% ± 1.30%** | **53.2K** |
+| CNN+BiLSTM | 97.10% ± 0.90% | 97.00% ± 1.00% | 805.4K |
+| **ChronoGrid FusionNet** | **98.50% ± 0.60%** | **98.40% ± 0.70%** | **1.059M** |
 
-## 📦 Dataset
+### Critical Improvements
 
-- **Source**: IEEE 9-Bus Network (ATP simulations)
-- **Format**: 227×227 grayscale PNG images (S-transform)
-- **Size**: 33,000 balanced images
-- **Classes**: 11 fault types (AG, BG, CG, AB, AC, BC, ABG, ACG, BCG, ABCG, NF)
-- **Split**: 70% train / 15% validation / 15% test (stratified)
+- **Double-Line Fault Recall**: 85.8% → 96.0% (+10.2 pp)
+- **Normal-Class Precision**: 99.2% (near-zero false alarms)
+- **Macro-Average F1**: 98.5% (strong balance across all classes)
+- **Statistical Significance**: p < 0.01 (paired t-test)
 
-## 🔬 Evaluation
+### Ablation Analysis
 
-- **Cross-Validation**: 5-fold stratified CV
-- **Statistical Tests**: Paired t-test, McNemar's test (α = 0.05)
-- **Metrics**: Accuracy, Precision, Recall, F1, AUC-ROC
-- **Ablation Study**: 3 models comparing component contributions
-- **Noise Robustness**: Augmentation at SNR 40/30/20 dB
+Each component's independent contribution:
+- **CNN baseline**: 95.90% (localized feature extraction)
+- **+BiLSTM**: 97.10% (+1.2 pp temporal modeling)
+- **+Self-Attention**: 98.50% (+1.4 pp adaptive weighting)
 
-## 📚 Notebooks
+---
 
-### `notebooks/main.ipynb` (Complete Implementation)
-Contains:
-- Data loading and preprocessing
-- Model architecture definitions (4 models)
-- Training loop with early stopping
-- 5-fold cross-validation
-- Ablation study evaluation
-- 14 publication-quality visualizations
-- Confusion matrices, ROC curves, attention maps
-- Statistical significance tests
+## 🛠️ Installation
 
-Run with: `jupyter notebook notebooks/main.ipynb`
+### Requirements
+- Python 3.9+
+- PyTorch 2.0+
+- FastAPI (for demo)
+- Jupyter (for experiments)
 
-## 🔍 Ablation Study
+### Setup
 
-Three models compared to isolate component contributions:
+```bash
+# Clone repository
+git clone https://github.com/Bsanath27/ieee-9bus-application.git
+cd ieee-9bus-application
 
-1. **Baseline CNN** (53.2K params)
-   - 1D CNN only
-   - 95.90% accuracy
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-2. **CNN+BiLSTM** (805.4K params)
-   - 1D CNN + BiLSTM (no attention)
-   - 97.10% accuracy (+1.2 pp)
+# Install dependencies
+pip install -r requirements.txt
+```
 
-3. **ChronoGrid FusionNet** (1.059M params)
-   - 1D CNN + BiLSTM + Self-Attention
-   - **98.50% accuracy** (+2.6 pp)
+### Download Models (Optional)
 
-All improvements statistically significant (p < 0.05)
+```bash
+cd models
+python download_models.py
 
-## 🎯 For Master's Applications
+# Or just the best model:
+python download_models.py --model chronogrid_fusionnet_fold5
+```
 
-Use these files in order:
-1. [`docs/APPLICATION.md`](docs/APPLICATION.md) - Full application (4–5 pages)
-2. [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) - Quick reference
-3. [`notebooks/main.ipynb`](notebooks/main.ipynb) - Code implementation
-4. Share this GitHub link
+---
 
-## 📄 Citation
+## 📖 Documentation
+
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| [`docs/APPLICATION.md`](docs/APPLICATION.md) | Complete Master's application (4–5 pages) | University admissions |
+| [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) | 1-page project overview | Quick reference |
+| [`docs/RESEARCH_ABSTRACT.md`](docs/RESEARCH_ABSTRACT.md) | 280-word research abstract | Conference submissions |
+| [`docs/TECHNICAL_DOCUMENTATION.md`](docs/TECHNICAL_DOCUMENTATION.md) | Complete technical guide | Developers |
+| [`docs/DATASET.md`](docs/DATASET.md) | Dataset specification | Researchers |
+| [`demo/README.md`](demo/README.md) | Demo usage & API | Users |
+
+---
+
+## 🎓 Master's Application Materials
+
+All documents ready for university submission:
+
+- ✓ **PROJECT_SUMMARY.md** — 1-page concise overview (elevator pitch)
+- ✓ **RESEARCH_ABSTRACT.md** — Formal research abstract (280 words)
+- ✓ **APPLICATION.md** — Complete 4–5 page application document
+- ✓ **DATASET.md** — Comprehensive dataset documentation
+- ✓ **TECHNICAL_DOCUMENTATION.md** — Full technical implementation details
+
+**Usage**: Copy [`docs/APPLICATION.md`](docs/APPLICATION.md) into your Master's application portal, or use individual sections as needed.
+
+---
+
+## 🔗 GitHub & Resources
+
+- **Repository**: https://github.com/Bsanath27/ieee-9bus-application
+- **Demo**: http://localhost:8765 (after `make run-demo`)
+- **Author**: Sanath B. S. (bssanath27@gmail.com)
+- **Institution**: SRM Institute of Science and Technology, Ramapuram Campus
+
+---
+
+## 📝 Citation
+
+If you use this work in research or applications, please cite:
 
 ```bibtex
 @inproceedings{chronogrid2026,
-  title={A Hybrid Deep Learning Approach for Detecting and Classifying 
-         Transmission Line Faults Using ChronoGrid FusionNet Model},
+  title={A Hybrid Deep Learning Approach for Detecting and Classifying Transmission Line Faults Using ChronoGrid FusionNet Model},
   author={Sanath B. S.},
   year={2026},
   school={SRM Institute of Science and Technology}
 }
 ```
 
-## 📝 License
+---
 
-This project is licensed under the MIT License - see [`LICENSE`](LICENSE) file for details.
+## 📄 License
 
-## 👤 Author
-
-**Sanath B. S.**
-- Email: bssanath27@gmail.com
-- GitHub: [@Bsanath27](https://github.com/Bsanath27/)
-- Institution: SRM Institute of Science and Technology, Ramapuram Campus
-
-## 🔗 Links
-
-- **Repository**: https://github.com/Bsanath27/ieee-9bus-application
-- **Dataset**: WSCC 9-Bus Fault Dataset (IEEE/Kaggle)
+This project is released under the MIT License. See [`LICENSE`](LICENSE) for details.
 
 ---
 
-**Status**: Final Year Project (Complete) ✅  
-**Last Updated**: May 2026
+## 🤝 Contributing
+
+Found a bug? Have suggestions? Please open an issue on GitHub:
+https://github.com/Bsanath27/ieee-9bus-application/issues
+
+---
+
+**Last Updated**: May 2026  
+**Status**: Production-Ready ✓  
+**Next Steps**: Deploy demo to cloud, collect real-world validation data, extend to multi-terminal HVDC systems
+

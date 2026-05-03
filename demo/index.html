@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronoGrid FusionNet — Live Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { text-align: center; color: white; margin-bottom: 40px; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2); }
+        .card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1); margin-bottom: 30px; }
+        .main { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        form { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin: 15px 0 5px 0; color: #333; }
+        select, input { padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 1em; }
+        button { padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 20px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4); }
+        .results { margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 10px; display: none; }
+        .results.show { display: block; }
+        canvas { max-width: 100%; height: auto; border-radius: 8px; margin-top: 20px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); }
+        .loading { text-align: center; color: #667eea; display: none; }
+        .loading.show { display: block; }
+        footer { text-align: center; color: white; margin-top: 40px; opacity: 0.8; }
+        @media (max-width: 768px) { .main { grid-template-columns: 1fr; } h1 { font-size: 1.8em; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ ChronoGrid FusionNet</h1>
+            <p>Hybrid Deep Learning for Transmission Line Fault Classification</p>
+            <p style="margin-top: 10px; opacity: 0.9;">98.50% Accuracy | 1.059M Parameters | 2.1ms Inference</p>
+        </header>
+
+        <div class="main">
+            <div class="card">
+                <h2>🔍 Fault Prediction</h2>
+                <form id="predictionForm">
+                    <label for="faultType">Fault Type:</label>
+                    <select id="faultType" required>
+                        <option value="">Select a fault type...</option>
+                        <option value="NF">NF — No Fault</option>
+                        <option value="AG">AG — A-to-Ground</option>
+                        <option value="BG">BG — B-to-Ground</option>
+                        <option value="CG">CG — C-to-Ground</option>
+                        <option value="AB">AB — Phase A-B</option>
+                        <option value="AC">AC — Phase A-C</option>
+                        <option value="BC">BC — Phase B-C</option>
+                        <option value="ABG">ABG — AB-to-Ground</option>
+                        <option value="ACG">ACG — AC-to-Ground</option>
+                        <option value="BCG">BCG — BC-to-Ground</option>
+                        <option value="ABCG">ABCG — 3-Phase-to-Ground</option>
+                    </select>
+
+                    <label for="sampleIndex">Sample Index (1-3000):</label>
+                    <input type="number" id="sampleIndex" min="1" max="3000" value="1" required>
+
+                    <label for="noiseSigma">Noise Level (0.00 = clean):</label>
+                    <input type="range" id="noiseSigma" min="0" max="0.2" step="0.01" value="0">
+
+                    <button type="submit">🚀 Predict Fault</button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <p>⏳ Analyzing spectrogram...</p>
+                </div>
+
+                <div class="results" id="results">
+                    <h3>Results</h3>
+                    <p><strong>Predicted:</strong> <span id="predicted"></span></p>
+                    <p><strong>Confidence:</strong> <span id="confidence"></span></p>
+                    <p><strong>Latency:</strong> <span id="latency"></span></p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 S-Transform Heatmap</h2>
+                <canvas id="heatmapCanvas" width="400" height="300" style="display: none;"></canvas>
+                <div style="text-align: center; color: #999; padding: 40px;">
+                    Heatmap will appear after prediction
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>🔬 ChronoGrid FusionNet Demo | <a href="https://github.com/Bsanath27/ieee-9bus-application" style="color: white;">View on GitHub</a></p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const faultType = document.getElementById('faultType').value;
+            const sampleIndex = parseInt(document.getElementById('sampleIndex').value);
+            const noiseSigma = parseFloat(document.getElementById('noiseSigma').value);
+            
+            document.getElementById('loading').classList.add('show');
+            
+            try {
+                const response = await fetch(`${API_BASE}/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fault_type: faultType, sample_index: sampleIndex, noise_sigma: noiseSigma })
+                });
+                
+                const data = await response.json();
+                document.getElementById('predicted').textContent = `${data.predicted_class} (${(data.confidence * 100).toFixed(1)}%)`;
+                document.getElementById('confidence').textContent = `${(data.confidence * 100).toFixed(2)}%`;
+                document.getElementById('latency').textContent = `${data.inference_ms.toFixed(2)} ms`;
+                document.getElementById('results').classList.add('show');
+                
+                // Draw heatmap
+                if (data.heatmap_rows) {
+                    const canvas = document.getElementById('heatmapCanvas');
+                    canvas.style.display = 'block';
+                    const ctx = canvas.getContext('2d');
+                    const rows = data.heatmap_rows.length;
+                    const cols = data.heatmap_rows[0].length;
+                    const cellWidth = canvas.width / cols;
+                    const cellHeight = canvas.height / rows;
+                    
+                    for (let i = 0; i < rows; i++) {
+                        for (let j = 0; j < cols; j++) {
+                            const value = data.heatmap_rows[i][j];
+                            const hue = (1 - value) * 240;
+                            ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                            ctx.fillRect(j * cellWidth, i * cellHeight, cellWidth, cellHeight);
+                        }
+                    }
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
