@@ -1,5 +1,5 @@
 import { motion, useMotionValue, useTransform, useSpring } from 'framer-motion'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { FAULT_CLASSES, FAULT_CATEGORIES, type FaultClass } from '@/lib/api'
 
@@ -106,6 +106,7 @@ export function FaultGallery() {
         {FAULT_CLASSES.map((fault, i) => {
           const cat = Object.values(FAULT_CATEGORIES).find(c => c.classes.includes(fault))
           const color = cat?.color ?? '#94a3b8'
+          const [imgError, setImgError] = useState(false)
           return (
             <motion.div
               key={fault}
@@ -117,13 +118,21 @@ export function FaultGallery() {
             <TiltCard className="group relative rounded-xl border border-white/7 bg-zinc-900 overflow-hidden cursor-default h-full"
             >
               {/* Heatmap thumbnail */}
-              <div className="relative aspect-square overflow-hidden bg-zinc-950">
-                <img
-                  src={`/api/dataset/${fault}/1.jpg`}
-                  alt={`${fault} S-transform heatmap`}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
+              <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center">
+                {!imgError ? (
+                  <img
+                    src={`/api/dataset/${fault}/1.jpg`}
+                    alt={`${fault} S-transform heatmap`}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="text-center text-zinc-500">
+                    <div className="text-3xl mb-2">📊</div>
+                    <div className="text-xs">S-transform<br/>heatmap</div>
+                  </div>
+                )}
                 {/* Colour accent bar */}
                 <div
                   className="absolute bottom-0 left-0 right-0 h-0.5"
