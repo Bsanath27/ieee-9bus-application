@@ -1,4 +1,4 @@
-.PHONY: help install install-dev run-demo run-notebook train test clean docs
+.PHONY: help install install-dev start run-demo run-notebook train test clean docs
 
 help:
 	@echo "ChronoGrid FusionNet — Makefile Commands"
@@ -9,6 +9,7 @@ help:
 	@echo "  make install-dev   Install with dev dependencies"
 	@echo ""
 	@echo "Running:"
+	@echo "  make start         Start production server (respects PORT env var)"
 	@echo "  make run-demo      Start FastAPI demo server (port 8765)"
 	@echo "  make run-notebook  Launch Jupyter with main notebook"
 	@echo ""
@@ -30,6 +31,9 @@ install-dev:
 	pip install --upgrade pip
 	pip install -r requirements.txt
 	pip install jupyter jupyterlab pytest fastapi uvicorn python-multipart
+
+start:
+	python code/server.py
 
 run-demo:
 	@echo "Starting ChronoGrid FusionNet Demo..."

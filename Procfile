@@ -1,1 +1,1 @@
-web: python code/server.py
+web: make start
