@@ -218,47 +218,59 @@ def health():
 
 @app.post("/predict")
 def predict(req: PredictRequest):
-    if req.fault_type not in FAULT_CLASSES:
-        raise HTTPException(400, f"Unknown fault type. Choose from {FAULT_CLASSES}")
+    try:
+        if req.fault_type not in FAULT_CLASSES:
+            raise HTTPException(400, f"Unknown fault type. Choose from {FAULT_CLASSES}")
 
-    arr, img_source = load_and_preprocess(req.fault_type, req.sample_index, req.noise_sigma)
-    x = arr_to_tensor(arr)
+        arr, img_source = load_and_preprocess(req.fault_type, req.sample_index, req.noise_sigma)
+        x = arr_to_tensor(arr)
+    except Exception as e:
+        print(f"❌ Predict error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Prediction error: {str(e)}")
 
-    # Generate predictions
-    if model_loaded:
-        # Use actual model
-        t0 = time.perf_counter()
-        with torch.no_grad():
-            logits = model(x)                          # [1, 11]
-            probs  = F.softmax(logits, dim=1)[0]       # [11]
-        elapsed_ms = (time.perf_counter() - t0) * 1000
+    try:
+        # Generate predictions
+        if model_loaded:
+            # Use actual model
+            t0 = time.perf_counter()
+            with torch.no_grad():
+                logits = model(x)                          # [1, 11]
+                probs  = F.softmax(logits, dim=1)[0]       # [11]
+            elapsed_ms = (time.perf_counter() - t0) * 1000
 
-        pred_idx   = int(probs.argmax().item())
-        pred_class = FAULT_CLASSES[pred_idx]
-        confidence = float(probs[pred_idx].item())
-        probs_dict = {c: float(probs[i].item()) for i, c in enumerate(FAULT_CLASSES)}
-    else:
-        # Use mock predictions
-        elapsed_ms = np.random.uniform(1.5, 3.0)  # Simulate latency
-        probs_dict = generate_mock_prediction(req.fault_type, req.noise_sigma)
-        pred_class = max(probs_dict, key=probs_dict.get)
-        pred_idx = FAULT_CLASSES.index(pred_class)
-        confidence = probs_dict[pred_class]
+            pred_idx   = int(probs.argmax().item())
+            pred_class = FAULT_CLASSES[pred_idx]
+            confidence = float(probs[pred_idx].item())
+            probs_dict = {c: float(probs[i].item()) for i, c in enumerate(FAULT_CLASSES)}
+        else:
+            # Use mock predictions
+            elapsed_ms = np.random.uniform(1.5, 3.0)  # Simulate latency
+            probs_dict = generate_mock_prediction(req.fault_type, req.noise_sigma)
+            pred_class = max(probs_dict, key=probs_dict.get)
+            pred_idx = FAULT_CLASSES.index(pred_class)
+            confidence = probs_dict[pred_class]
 
-    # Heatmap rows for visualization
-    heatmap = extract_heatmap_rows(arr, n_rows=32)
+        # Heatmap rows for visualization
+        heatmap = extract_heatmap_rows(arr, n_rows=32)
 
-    return {
-        "predicted_class": pred_class,
-        "predicted_index": pred_idx,
-        "confidence": confidence,
-        "probabilities": probs_dict,
-        "inference_ms": round(elapsed_ms, 2),
-        "heatmap_rows": heatmap,           # 32×227 for JS rendering
-        "image_source": img_source,
-        "noise_applied": req.noise_sigma > 0,
-        "demo_mode": not model_loaded,
-    }
+        return {
+            "predicted_class": pred_class,
+            "predicted_index": pred_idx,
+            "confidence": confidence,
+            "probabilities": probs_dict,
+            "inference_ms": round(elapsed_ms, 2),
+            "heatmap_rows": heatmap,           # 32×227 for JS rendering
+            "image_source": img_source,
+            "noise_applied": req.noise_sigma > 0,
+            "demo_mode": not model_loaded,
+        }
+    except Exception as e:
+        print(f"❌ Predict processing error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(500, f"Processing error: {str(e)}")
 
 
 @app.get("/sample_count/{fault_type}")
