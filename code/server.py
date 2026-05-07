@@ -161,7 +161,8 @@ def load_and_preprocess(fault_type: str, sample_index: int, noise_sigma: float):
 
 
 def arr_to_tensor(arr: np.ndarray) -> torch.Tensor:
-    return torch.tensor(arr).unsqueeze(0)  # [1, 227, 227]
+    t = torch.tensor(arr, dtype=torch.float32, device=device).unsqueeze(0)  # [1, 227, 227]
+    return t
 
 
 def extract_heatmap_rows(arr: np.ndarray, n_rows: int = 32) -> list:
