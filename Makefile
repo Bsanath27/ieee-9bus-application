@@ -106,3 +106,6 @@ check-env:
 	pip list | grep -E "torch|numpy|scikit-learn|matplotlib" || echo "Some packages missing"
 
 .DEFAULT_GOAL := help
+
+# MuonTickets (agent ticketing)
+include tickets/mt/muontickets/muontickets/Makefile.snippet
