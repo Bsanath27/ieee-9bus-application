@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { id: 'architecture', label: 'Architecture' },
   { id: 'faults',       label: 'Fault Types' },
   { id: 'performance',  label: 'Performance' },
+  { id: 'powerflow',    label: 'Power Flow' },
   { id: 'playground',   label: 'Playground' },
   { id: 'simulator',    label: 'Simulator' },
 ]
