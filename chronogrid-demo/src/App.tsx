@@ -4,6 +4,7 @@ import { Architecture }   from '@/components/Architecture'
 import { SignalPipeline } from '@/components/SignalPipeline'
 import { FaultGallery }   from '@/components/FaultGallery'
 import { Performance }    from '@/components/Performance'
+import { Playground }     from '@/components/Playground'
 import { Simulator }      from '@/components/Simulator'
 import { Footer }         from '@/components/Footer'
 import { Separator }      from '@/components/ui/separator'
@@ -22,6 +23,8 @@ export default function App() {
         <FaultGallery />
         <Separator className="opacity-40" />
         <Performance />
+        <Separator className="opacity-40" />
+        <Playground />
         <Separator className="opacity-40" />
         <Simulator />
       </main>
