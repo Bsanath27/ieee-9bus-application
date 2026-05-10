@@ -55,7 +55,11 @@ export async function predictUpload(file: File | Blob, filename = 'image.jpg'): 
 
 export async function loadSample(faultType: FaultClass): Promise<SampleResult> {
   const r = await fetch(`${BASE}/samples/${faultType}/random`)
-  if (!r.ok) throw new Error(`Sample load failed: ${r.status}`)
+  if (!r.ok) {
+    const body = await r.json().catch(() => null)
+    const detail = body?.detail ?? `Sample load failed: ${r.status}`
+    throw new Error(detail)
+  }
   return r.json()
 }
 
