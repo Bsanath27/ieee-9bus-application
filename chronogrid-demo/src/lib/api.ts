@@ -1,5 +1,8 @@
 const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
+// Static samples bundled with the Netlify deploy
+const SAMPLE_COUNT = 3
+
 export const FAULT_CLASSES = [
   'AG','BG','CG','AB','AC','BC','ABG','ACG','BCG','ABCG','NF',
 ] as const
@@ -53,14 +56,31 @@ export async function predictUpload(file: File | Blob, filename = 'image.jpg'): 
   return r.json()
 }
 
+/**
+ * Load a sample from the static Netlify-hosted files, then run real inference
+ * via /predict/upload. No backend dataset needed.
+ */
 export async function loadSample(faultType: FaultClass): Promise<SampleResult> {
-  const r = await fetch(`${BASE}/samples/${faultType}/random`)
-  if (!r.ok) {
-    const body = await r.json().catch(() => null)
-    const detail = body?.detail ?? `Sample load failed: ${r.status}`
-    throw new Error(detail)
-  }
-  return r.json()
+  const idx = Math.floor(Math.random() * SAMPLE_COUNT) + 1
+  const imgUrl = `/samples/${faultType}/${idx}.jpg`
+
+  // Fetch static image from Netlify
+  const imgResp = await fetch(imgUrl)
+  if (!imgResp.ok) throw new Error(`Sample image not found: ${imgUrl}`)
+  const blob = await imgResp.blob()
+
+  // Convert to base64 for preview
+  const image_base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve((reader.result as string).split(',')[1])
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+
+  // Run real inference on the Render backend
+  const result = await predictUpload(blob, `${faultType}_${idx}.jpg`)
+
+  return { ...result, image_base64, fault_type: faultType }
 }
 
 export async function getMetrics(): Promise<Metrics> {
