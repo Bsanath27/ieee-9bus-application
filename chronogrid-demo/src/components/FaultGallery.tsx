@@ -68,6 +68,34 @@ function getFaultVariant(fault: FaultClass) {
   return 'gold'
 }
 
+function FaultImage({ fault }: { fault: FaultClass }) {
+  const cat   = Object.values(FAULT_CATEGORIES).find(c => c.classes.includes(fault))
+  const color = cat?.color ?? '#94a3b8'
+  const [err, setErr] = useState(false)
+
+  if (err) {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+        <div className="text-3xl">📊</div>
+        <div className="text-xs text-zinc-500 text-center">S-transform<br/>heatmap</div>
+      </div>
+    )
+  }
+  return (
+    <>
+      <img
+        src={`/samples/${fault}/1.jpg`}
+        alt={`${fault} S-transform heatmap`}
+        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        style={{ imageRendering: 'pixelated' }}
+        loading="lazy"
+        onError={() => setErr(true)}
+      />
+      <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: color }} />
+    </>
+  )
+}
+
 export function FaultGallery() {
   return (
     <section id="faults" className="py-24 px-6 max-w-7xl mx-auto">
@@ -106,7 +134,6 @@ export function FaultGallery() {
         {FAULT_CLASSES.map((fault, i) => {
           const cat = Object.values(FAULT_CATEGORIES).find(c => c.classes.includes(fault))
           const color = cat?.color ?? '#94a3b8'
-          const [imgError, setImgError] = useState(false)
           return (
             <motion.div
               key={fault}
@@ -118,26 +145,8 @@ export function FaultGallery() {
             <TiltCard className="group relative rounded-xl border border-white/7 bg-zinc-900 overflow-hidden cursor-default h-full"
             >
               {/* Heatmap thumbnail */}
-              <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center">
-                {!imgError ? (
-                  <img
-                    src={`/api/dataset/${fault}/1.jpg`}
-                    alt={`${fault} S-transform heatmap`}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                    onError={() => setImgError(true)}
-                  />
-                ) : (
-                  <div className="text-center text-zinc-500">
-                    <div className="text-3xl mb-2">📊</div>
-                    <div className="text-xs">S-transform<br/>heatmap</div>
-                  </div>
-                )}
-                {/* Colour accent bar */}
-                <div
-                  className="absolute bottom-0 left-0 right-0 h-0.5"
-                  style={{ background: color }}
-                />
+              <div className="relative aspect-square overflow-hidden bg-zinc-950">
+                <FaultImage fault={fault} />
               </div>
 
               {/* Info */}
