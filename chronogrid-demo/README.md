@@ -71,3 +71,38 @@ export default defineConfig([
   },
 ])
 ```
+
+## Regenerating physics.json
+
+`chronogrid-demo/public/physics.json` contains precomputed Z-bus fault analysis results
+for all 66 scenarios (6 transmission lines × 11 fault types). It is shipped as a static
+asset via Netlify — end users never trigger this computation.
+
+**Why precomputed?** The pandapower library requires ~150 MB RAM. Combined with PyTorch on
+Render's free tier (512 MB limit), running pandapower at request time risks OOM errors.
+
+### Prerequisites
+
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/) (`pip install uv` or `brew install uv`)
+
+### Steps
+
+```bash
+cd scripts/pandapower-physics
+uv sync                  # installs pandapower + numpy into isolated venv
+uv run python3 precompute.py
+```
+
+Expected output:
+```
+Building WSCC 9-bus network…
+Running pre-fault power flow…
+  Bus 5 = 0.9879 pu  Bus 6 = 1.0025 pu  Bus 8 = 1.0057 pu
+Building Y-bus (Z-bus = inv(Y-bus))…
+  [  1.5%] L4-5/AG → 1.25 kA ...
+  ...
+✓ Written to .../chronogrid-demo/public/physics.json  (17.6 KB)
+```
+
+After regenerating, commit `public/physics.json` and redeploy Netlify.
